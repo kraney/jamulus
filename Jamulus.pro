@@ -1016,3 +1016,17 @@ contains(CONFIG, "opus_shared_lib") {
     SOURCES += $$SOURCES_OPUS
     DISTFILES += $$DISTFILES_OPUS
 }
+
+contains(CONFIG, "agones") {
+    DEFINES += AGONES
+    INCLUDEPATH += /opt/local/Protobuf/include \
+                   /opt/local/agones/include \
+                   /opt/local/c-ares/include \
+                   /opt/local/gRPC/include \
+                   /opt/local/zlib/include
+    LIBS += -L/opt/local/agones/lib -lagones \
+            -L/opt/local/Protobuf/lib64 -lprotobuf \
+            -L/opt/local/gRPC/lib/ -lgrpc++ -lgrpc -lgpr -laddress_sorting \
+            -L/opt/local/zlib/lib -lz \
+            -L/opt/local/c-ares/lib -lcares
+}

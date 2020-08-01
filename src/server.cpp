@@ -22,6 +22,9 @@
  *
 \******************************************************************************/
 
+#ifdef AGONES
+#include <iostream>
+#endif
 #include "server.h"
 
 // CHighPrecisionTimer implementation ******************************************
@@ -495,6 +498,27 @@ CServer::CServer(const int iNewMaxNumChan,
                      this, &CServer::OnHandledSignal);
 
     connectChannelSignalsToServerSlots<MAX_NUM_CHANNELS>();
+#ifdef AGONES
+    std::cout << "Reporting GameServer to Agones" << endl;
+    agonesSDK = new agones::SDK();
+    if (!agonesSDK->Connect())
+    {
+        cerr << "Unable to connect to Agones" << endl;
+        exit(1);
+    }
+    healthTimer = new QTimer(this);
+
+    QObject::connect(healthTimer, &QTimer::timeout, this, &CServer::OnHealthTimer);
+    healthTimer->start(3000);
+
+    grpc::Status status = agonesSDK->Ready();
+    if (!status.ok())
+    {
+        std::cerr << "Could not run Agones Ready(): " << status.error_message() << ". Exiting";
+        exit(1);
+    }
+    std::cout << "Marked Ready" << endl;
+#endif
 
     // start the socket (it is important to start the socket after all
     // initializations and connections)
@@ -559,6 +583,9 @@ void CServer::CreateAndSendJitBufMessage(const int iCurChanID,
 
 CServer::~CServer()
 {
+#ifdef AGONES
+    healthTimer->stop();
+#endif
     for (int i = 0; i < iMaxNumChannels; i++)
     {
         // free audio encoders and decoders
@@ -760,6 +787,14 @@ void CServer::Start()
         // start timer
         HighPrecisionTimer.Start();
 
+#ifdef AGONES
+        grpc::Status status = agonesSDK->Allocate();
+        if (!status.ok())
+        {
+            std::cerr << "Unable to mark this server as allocated" << endl;
+        }
+#endif
+
         // emit start signal
         emit Started();
     }
@@ -779,10 +814,27 @@ void CServer::Stop()
         // logging (add "server stopped" logging entry)
         Logging.AddServerStopped();
 
+#ifdef AGONES
+        grpc::Status status = agonesSDK->Ready();
+        if (!status.ok())
+        {
+            std::cerr << "Unable to mark this server as deallocated" << endl;
+        }
+#endif
+
         // emit stopped signal
         emit Stopped();
     }
 }
+
+#ifdef AGONES
+void CServer::OnHealthTimer()
+{
+    bool ok = agonesSDK->Health();
+    std::cout << "Health ping " << (ok ? "sent" : "failed") << "\n"
+              << std::flush;
+}
+#endif
 
 void CServer::OnTimer()
 {

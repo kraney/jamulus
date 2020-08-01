@@ -179,7 +179,7 @@ LED bar:      lbr
 #define YELLOW_BOUND_LED_BAR 5
 
 // maximum number of connected clients at the server (must not be larger than 256)
-#define MAX_NUM_CHANNELS 50 // max number channels for server
+#define MAX_NUM_CHANNELS 125 // max number channels for server
 
 // actual number of used channels in the server
 // this parameter can safely be changed from 1 to MAX_NUM_CHANNELS

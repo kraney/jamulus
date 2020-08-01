@@ -30,6 +30,10 @@
 #include <QHostAddress>
 #include <QFileInfo>
 #include <algorithm>
+#ifdef AGONES
+#include <agones/sdk.h>
+#include <grpc++/grpc++.h>
+#endif
 #ifdef USE_OPUS_SHARED_LIB
 #include "opus/opus_custom.h"
 #else
@@ -407,8 +411,14 @@ protected:
 
     CSignalHandler *pSignalHandler;
 
+#ifdef AGONES
+    agones::SDK *agonesSDK;
+    QTimer *healthTimer;
+#endif
+
 signals:
-    void Started();
+    void
+    Started();
     void Stopped();
     void ClientDisconnected(const int iChID);
     void SvrRegStatusChanged();
@@ -425,6 +435,9 @@ signals:
     void EndRecorderThread();
 
 public slots:
+#ifdef AGONES
+    void OnHealthTimer();
+#endif
     void OnTimer();
 
     void OnNewConnection(int iChID,

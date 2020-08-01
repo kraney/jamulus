@@ -31,9 +31,9 @@
 #include <QFileInfo>
 #include <algorithm>
 #ifdef USE_OPUS_SHARED_LIB
-# include "opus/opus_custom.h"
+#include "opus/opus_custom.h"
 #else
-# include "opus_custom.h"
+#include "opus_custom.h"
 #endif
 #include "global.h"
 #include "buffer.h"
@@ -47,29 +47,28 @@
 
 /* Definitions ****************************************************************/
 // no valid channel number
-#define INVALID_CHANNEL_ID                  ( MAX_NUM_CHANNELS + 1 )
-
+#define INVALID_CHANNEL_ID (MAX_NUM_CHANNELS + 1)
 
 /* Classes ********************************************************************/
-#if ( defined ( WIN32 ) || defined ( _WIN32 ) )
+#if (defined(WIN32) || defined(_WIN32))
 // using QTimer for Windows
 class CHighPrecisionTimer : public QObject
 {
     Q_OBJECT
 
 public:
-    CHighPrecisionTimer ( const bool bNewUseDoubleSystemFrameSize );
+    CHighPrecisionTimer(const bool bNewUseDoubleSystemFrameSize);
 
     void Start();
     void Stop();
     bool isActive() const { return Timer.isActive(); }
 
 protected:
-    QTimer       Timer;
+    QTimer Timer;
     CVector<int> veciTimeOutIntervals;
-    int          iCurPosInVector;
-    int          iIntervalCounter;
-    bool         bUseDoubleSystemFrameSize;
+    int iCurPosInVector;
+    int iIntervalCounter;
+    bool bUseDoubleSystemFrameSize;
 
 public slots:
     void OnTimer();
@@ -79,20 +78,20 @@ signals:
 };
 #else
 // using mach timers for Mac and nanosleep for Linux
-# if defined ( __APPLE__ ) || defined ( __MACOSX )
-#  include <mach/mach.h>
-#  include <mach/mach_error.h>
-#  include <mach/mach_time.h>
-# else
-#  include <sys/time.h>
-# endif
+#if defined(__APPLE__) || defined(__MACOSX)
+#include <mach/mach.h>
+#include <mach/mach_error.h>
+#include <mach/mach_time.h>
+#else
+#include <sys/time.h>
+#endif
 
 class CHighPrecisionTimer : public QThread
 {
     Q_OBJECT
 
 public:
-    CHighPrecisionTimer ( const bool bUseDoubleSystemFrameSize );
+    CHighPrecisionTimer(const bool bUseDoubleSystemFrameSize);
 
     void Start();
     void Stop();
@@ -103,85 +102,84 @@ protected:
 
     bool bRun;
 
-# if defined ( __APPLE__ ) || defined ( __MACOSX )
+#if defined(__APPLE__) || defined(__MACOSX)
     uint64_t Delay;
     uint64_t NextEnd;
-# else
-    long     Delay;
+#else
+    long Delay;
     timespec NextEnd;
-# endif
+#endif
 
 signals:
     void timeout();
 };
 #endif
 
-
-template<unsigned int slotId>
+template <unsigned int slotId>
 class CServerSlots : public CServerSlots<slotId - 1>
 {
 public:
-    void OnSendProtMessCh ( CVector<uint8_t> mess ) { SendProtMessage ( slotId - 1,  mess ); }
-    void OnReqConnClientsListCh()  { CreateAndSendChanListForThisChan ( slotId - 1 ); }
+    void OnSendProtMessCh(CVector<uint8_t> mess) { SendProtMessage(slotId - 1, mess); }
+    void OnReqConnClientsListCh() { CreateAndSendChanListForThisChan(slotId - 1); }
 
-    void OnChatTextReceivedCh ( QString strChatText )
+    void OnChatTextReceivedCh(QString strChatText)
     {
-        CreateAndSendChatTextForAllConChannels ( slotId - 1, strChatText );
+        CreateAndSendChatTextForAllConChannels(slotId - 1, strChatText);
     }
 
-    void OnMuteStateHasChangedCh ( int iChanID, bool bIsMuted )
+    void OnMuteStateHasChangedCh(int iChanID, bool bIsMuted)
     {
-        CreateOtherMuteStateChanged ( slotId - 1, iChanID, bIsMuted );
+        CreateOtherMuteStateChanged(slotId - 1, iChanID, bIsMuted);
     }
 
-    void OnServerAutoSockBufSizeChangeCh ( int iNNumFra )
+    void OnServerAutoSockBufSizeChangeCh(int iNNumFra)
     {
-        CreateAndSendJitBufMessage ( slotId - 1, iNNumFra );
+        CreateAndSendJitBufMessage(slotId - 1, iNNumFra);
     }
 
 protected:
-    virtual void SendProtMessage ( int              iChID,
-                                   CVector<uint8_t> vecMessage ) = 0;
+    virtual void SendProtMessage(int iChID,
+                                 CVector<uint8_t> vecMessage) = 0;
 
-    virtual void CreateAndSendChanListForThisChan ( const int iCurChanID ) = 0;
+    virtual void CreateAndSendChanListForThisChan(const int iCurChanID) = 0;
 
-    virtual void CreateAndSendChatTextForAllConChannels ( const int      iCurChanID,
-                                                          const QString& strChatText ) = 0;
+    virtual void CreateAndSendChatTextForAllConChannels(const int iCurChanID,
+                                                        const QString &strChatText) = 0;
 
-    virtual void CreateOtherMuteStateChanged ( const int  iCurChanID,
-                                               const int  iOtherChanID,
-                                               const bool bIsMuted ) = 0;
+    virtual void CreateOtherMuteStateChanged(const int iCurChanID,
+                                             const int iOtherChanID,
+                                             const bool bIsMuted) = 0;
 
-    virtual void CreateAndSendJitBufMessage ( const int iCurChanID,
-                                              const int iNNumFra ) = 0;
+    virtual void CreateAndSendJitBufMessage(const int iCurChanID,
+                                            const int iNNumFra) = 0;
 };
 
-template<>
-class CServerSlots<0> {};
+template <>
+class CServerSlots<0>
+{
+};
 
-
-class CServer :
-        public QObject,
-        public CServerSlots<MAX_NUM_CHANNELS>
+class CServer : public QObject,
+                public CServerSlots<MAX_NUM_CHANNELS>
 {
     Q_OBJECT
 
 public:
-    CServer ( const int          iNewMaxNumChan,
-              const int          iMaxDaysHistory,
-              const QString&     strLoggingFileName,
-              const quint16      iPortNumber,
-              const QString&     strHTMLStatusFileName,
-              const QString&     strHistoryFileName,
-              const QString&     strServerNameForHTMLStatusFile,
-              const QString&     strCentralServer,
-              const QString&     strServerInfo,
-              const QString&     strNewWelcomeMessage,
-              const QString&     strRecordingDirName,
-              const bool         bNCentServPingServerInList,
-              const bool         bNDisconnectAllClientsOnQuit,
-              const bool         bNUseDoubleSystemFrameSize,
-              const ELicenceType eNLicenceType );
+    CServer(const int iNewMaxNumChan,
+            const int iMaxDaysHistory,
+            const QString &strLoggingFileName,
+            const quint16 iPortNumber,
+            const QString &strHTMLStatusFileName,
+            const QString &strHistoryFileName,
+            const QString &strServerNameForHTMLStatusFile,
+            const QString &strCentralServer,
+            const QString &strServerInfo,
+            const QString &strNewWelcomeMessage,
+            const QString &strRecordingDirName,
+            const bool bNCentServPingServerInList,
+            const bool bNDisconnectAllClientsOnQuit,
+            const bool bNUseDoubleSystemFrameSize,
+            const ELicenceType eNLicenceType);
 
     virtual ~CServer();
 
@@ -189,16 +187,15 @@ public:
     void Stop();
     bool IsRunning() { return HighPrecisionTimer.isActive(); }
 
-    bool PutAudioData ( const CVector<uint8_t>& vecbyRecBuf,
-                        const int               iNumBytesRead,
-                        const CHostAddress&     HostAdr,
-                        int&                    iCurChanID );
+    bool PutAudioData(const CVector<uint8_t> &vecbyRecBuf,
+                      const int iNumBytesRead,
+                      const CHostAddress &HostAdr,
+                      int &iCurChanID);
 
-    void GetConCliParam ( CVector<CHostAddress>& vecHostAddresses,
-                          CVector<QString>&      vecsName,
-                          CVector<int>&          veciJitBufNumFrames,
-                          CVector<int>&          veciNetwFrameSizeFact );
-
+    void GetConCliParam(CVector<CHostAddress> &vecHostAddresses,
+                        CVector<QString> &vecsName,
+                        CVector<int> &veciJitBufNumFrames,
+                        CVector<int> &veciNetwFrameSizeFact);
 
     // Jam recorder ------------------------------------------------------------
     bool GetRecorderInitialised() { return JamController.GetRecorderInitialised(); }
@@ -206,293 +203,322 @@ public:
     bool GetRecordingEnabled() { return JamController.GetRecordingEnabled(); }
     void RequestNewRecording() { JamController.RequestNewRecording(); }
 
-    void SetEnableRecording ( bool bNewEnableRecording );
+    void SetEnableRecording(bool bNewEnableRecording);
 
     QString GetRecordingDir() { return JamController.GetRecordingDir(); }
 
-    void SetRecordingDir( QString newRecordingDir )
-        { JamController.SetRecordingDir ( newRecordingDir, iServerFrameSizeSamples ); }
+    void SetRecordingDir(QString newRecordingDir)
+    {
+        JamController.SetRecordingDir(newRecordingDir, iServerFrameSizeSamples);
+    }
 
     virtual void CreateAndSendRecorderStateForAllConChannels();
-
 
     // Server list management --------------------------------------------------
     void UpdateServerList() { ServerListManager.Update(); }
 
     void UnregisterSlaveServer() { ServerListManager.SlaveServerUnregister(); }
 
-    void SetServerListEnabled ( const bool bState )
-        { ServerListManager.SetEnabled ( bState ); }
+    void SetServerListEnabled(const bool bState)
+    {
+        ServerListManager.SetEnabled(bState);
+    }
 
     bool GetServerListEnabled() { return ServerListManager.GetEnabled(); }
 
-    void SetServerListCentralServerAddress ( const QString& sNCentServAddr )
-        { ServerListManager.SetCentralServerAddress ( sNCentServAddr ); }
+    void SetServerListCentralServerAddress(const QString &sNCentServAddr)
+    {
+        ServerListManager.SetCentralServerAddress(sNCentServAddr);
+    }
 
     QString GetServerListCentralServerAddress()
-        { return ServerListManager.GetCentralServerAddress(); }
+    {
+        return ServerListManager.GetCentralServerAddress();
+    }
 
-    void SetCentralServerAddressType ( const ECSAddType eNCSAT )
-        { ServerListManager.SetCentralServerAddressType ( eNCSAT ); }
+    void SetCentralServerAddressType(const ECSAddType eNCSAT)
+    {
+        ServerListManager.SetCentralServerAddressType(eNCSAT);
+    }
 
     ECSAddType GetCentralServerAddressType()
-        { return ServerListManager.GetCentralServerAddressType(); }
+    {
+        return ServerListManager.GetCentralServerAddressType();
+    }
 
-    void SetServerName ( const QString& strNewName )
-        { ServerListManager.SetServerName ( strNewName ); }
+    void SetServerName(const QString &strNewName)
+    {
+        ServerListManager.SetServerName(strNewName);
+    }
 
     QString GetServerName() { return ServerListManager.GetServerName(); }
 
-    void SetServerCity ( const QString& strNewCity )
-        { ServerListManager.SetServerCity ( strNewCity ); }
+    void SetServerCity(const QString &strNewCity)
+    {
+        ServerListManager.SetServerCity(strNewCity);
+    }
 
     QString GetServerCity() { return ServerListManager.GetServerCity(); }
 
-    void SetServerCountry ( const QLocale::Country eNewCountry )
-        { ServerListManager.SetServerCountry ( eNewCountry ); }
+    void SetServerCountry(const QLocale::Country eNewCountry)
+    {
+        ServerListManager.SetServerCountry(eNewCountry);
+    }
 
     QLocale::Country GetServerCountry()
-        { return ServerListManager.GetServerCountry(); }
+    {
+        return ServerListManager.GetServerCountry();
+    }
 
-    void SetWelcomeMessage ( const QString& strNWelcMess );
+    void SetWelcomeMessage(const QString &strNWelcMess);
     QString GetWelcomeMessage() { return strWelcomeMessage; }
 
     ESvrRegStatus GetSvrRegStatus() { return ServerListManager.GetSvrRegStatus(); }
 
-
     // GUI settings ------------------------------------------------------------
-    void SetAutoRunMinimized ( const bool NAuRuMin ) { bAutoRunMinimized = NAuRuMin; }
+    void SetAutoRunMinimized(const bool NAuRuMin) { bAutoRunMinimized = NAuRuMin; }
     bool GetAutoRunMinimized() { return bAutoRunMinimized; }
 
-    void SetLicenceType ( const ELicenceType NLiType ) { eLicenceType = NLiType; }
+    void SetLicenceType(const ELicenceType NLiType) { eLicenceType = NLiType; }
     ELicenceType GetLicenceType() { return eLicenceType; }
 
 protected:
     // access functions for actual channels
-    bool IsConnected ( const int iChanNum )
-        { return vecChannels[iChanNum].IsConnected(); }
+    bool IsConnected(const int iChanNum)
+    {
+        return vecChannels[iChanNum].IsConnected();
+    }
 
-    void StartStatusHTMLFileWriting ( const QString& strNewFileName,
-                                      const QString& strNewServerNameWithPort );
+    void StartStatusHTMLFileWriting(const QString &strNewFileName,
+                                    const QString &strNewServerNameWithPort);
 
     int GetFreeChan();
-    int FindChannel ( const CHostAddress& CheckAddr );
+    int FindChannel(const CHostAddress &CheckAddr);
     int GetNumberOfConnectedClients();
     CVector<CChannelInfo> CreateChannelList();
 
     virtual void CreateAndSendChanListForAllConChannels();
-    virtual void CreateAndSendChanListForThisChan ( const int iCurChanID );
+    virtual void CreateAndSendChanListForThisChan(const int iCurChanID);
 
-    virtual void CreateAndSendChatTextForAllConChannels ( const int      iCurChanID,
-                                                          const QString& strChatText );
+    virtual void CreateAndSendChatTextForAllConChannels(const int iCurChanID,
+                                                        const QString &strChatText);
 
-    virtual void CreateOtherMuteStateChanged ( const int  iCurChanID,
-                                               const int  iOtherChanID,
-                                               const bool bIsMuted );
+    virtual void CreateOtherMuteStateChanged(const int iCurChanID,
+                                             const int iOtherChanID,
+                                             const bool bIsMuted);
 
-    virtual void CreateAndSendJitBufMessage ( const int iCurChanID,
-                                              const int iNNumFra );
+    virtual void CreateAndSendJitBufMessage(const int iCurChanID,
+                                            const int iNNumFra);
 
-    virtual void SendProtMessage ( int              iChID,
-                                   CVector<uint8_t> vecMessage );
+    virtual void SendProtMessage(int iChID,
+                                 CVector<uint8_t> vecMessage);
 
-    template<unsigned int slotId>
+    template <unsigned int slotId>
     inline void connectChannelSignalsToServerSlots();
 
     void WriteHTMLChannelList();
 
-    void ProcessData ( const CVector<CVector<int16_t> >& vecvecsData,
-                       const CVector<double>&            vecdGains,
-                       const CVector<double>&            vecdPannings,
-                       const CVector<int>&               vecNumAudioChannels,
-                       CVector<int16_t>&                 vecsOutData,
-                       const int                         iCurNumAudChan,
-                       const int                         iNumClients );
+    void ProcessData(const CVector<CVector<int16_t>> &vecvecsData,
+                     const CVector<double> &vecdGains,
+                     const CVector<double> &vecdPannings,
+                     const CVector<int> &vecNumAudioChannels,
+                     CVector<int16_t> &vecsOutData,
+                     const int iCurNumAudChan,
+                     const int iNumClients);
 
-    virtual void customEvent ( QEvent* pEvent );
+    virtual void customEvent(QEvent *pEvent);
 
     // if server mode is normal or double system frame size
-    bool                       bUseDoubleSystemFrameSize;
-    int                        iServerFrameSizeSamples;
+    bool bUseDoubleSystemFrameSize;
+    int iServerFrameSizeSamples;
 
-    bool CreateLevelsForAllConChannels  ( const int                        iNumClients,
-                                          const CVector<int>&              vecNumAudioChannels,
-                                          const CVector<CVector<int16_t> > vecvecsData,
-                                          CVector<uint16_t>&               vecLevelsOut );
+    bool CreateLevelsForAllConChannels(const int iNumClients,
+                                       const CVector<int> &vecNumAudioChannels,
+                                       const CVector<CVector<int16_t>> vecvecsData,
+                                       CVector<uint16_t> &vecLevelsOut);
 
     // do not use the vector class since CChannel does not have appropriate
     // copy constructor/operator
-    CChannel                   vecChannels[MAX_NUM_CHANNELS];
-    int                        iMaxNumChannels;
-    CProtocol                  ConnLessProtocol;
-    QMutex                     Mutex;
-    QMutex                     MutexWelcomeMessage;
+    CChannel vecChannels[MAX_NUM_CHANNELS];
+    int iMaxNumChannels;
+    CProtocol ConnLessProtocol;
+    QMutex Mutex;
+    QMutex MutexWelcomeMessage;
 
     // audio encoder/decoder
-    OpusCustomMode*            Opus64Mode[MAX_NUM_CHANNELS];
-    OpusCustomEncoder*         Opus64EncoderMono[MAX_NUM_CHANNELS];
-    OpusCustomDecoder*         Opus64DecoderMono[MAX_NUM_CHANNELS];
-    OpusCustomEncoder*         Opus64EncoderStereo[MAX_NUM_CHANNELS];
-    OpusCustomDecoder*         Opus64DecoderStereo[MAX_NUM_CHANNELS];
-    OpusCustomMode*            OpusMode[MAX_NUM_CHANNELS];
-    OpusCustomEncoder*         OpusEncoderMono[MAX_NUM_CHANNELS];
-    OpusCustomDecoder*         OpusDecoderMono[MAX_NUM_CHANNELS];
-    OpusCustomEncoder*         OpusEncoderStereo[MAX_NUM_CHANNELS];
-    OpusCustomDecoder*         OpusDecoderStereo[MAX_NUM_CHANNELS];
-    CConvBuf<int16_t>          DoubleFrameSizeConvBufIn[MAX_NUM_CHANNELS];
-    CConvBuf<int16_t>          DoubleFrameSizeConvBufOut[MAX_NUM_CHANNELS];
+    OpusCustomMode *Opus64Mode[MAX_NUM_CHANNELS];
+    OpusCustomEncoder *Opus64EncoderMono[MAX_NUM_CHANNELS];
+    OpusCustomDecoder *Opus64DecoderMono[MAX_NUM_CHANNELS];
+    OpusCustomEncoder *Opus64EncoderStereo[MAX_NUM_CHANNELS];
+    OpusCustomDecoder *Opus64DecoderStereo[MAX_NUM_CHANNELS];
+    OpusCustomMode *OpusMode[MAX_NUM_CHANNELS];
+    OpusCustomEncoder *OpusEncoderMono[MAX_NUM_CHANNELS];
+    OpusCustomDecoder *OpusDecoderMono[MAX_NUM_CHANNELS];
+    OpusCustomEncoder *OpusEncoderStereo[MAX_NUM_CHANNELS];
+    OpusCustomDecoder *OpusDecoderStereo[MAX_NUM_CHANNELS];
+    CConvBuf<int16_t> DoubleFrameSizeConvBufIn[MAX_NUM_CHANNELS];
+    CConvBuf<int16_t> DoubleFrameSizeConvBufOut[MAX_NUM_CHANNELS];
 
-    CVector<QString>           vstrChatColors;
-    CVector<int>               vecChanIDsCurConChan;
+    CVector<QString> vstrChatColors;
+    CVector<int> vecChanIDsCurConChan;
 
-    CVector<CVector<double> >  vecvecdGains;
-    CVector<CVector<double> >  vecvecdPannings;
-    CVector<CVector<int16_t> > vecvecsData;
-    CVector<int>               vecNumAudioChannels;
-    CVector<int>               vecNumFrameSizeConvBlocks;
-    CVector<int>               vecUseDoubleSysFraSizeConvBuf;
-    CVector<EAudComprType>     vecAudioComprType;
-    CVector<CVector<int16_t> > vecvecsSendData;
-    CVector<CVector<uint8_t> > vecvecbyCodedData;
+    CVector<CVector<double>> vecvecdGains;
+    CVector<CVector<double>> vecvecdPannings;
+    CVector<CVector<int16_t>> vecvecsData;
+    CVector<int> vecNumAudioChannels;
+    CVector<int> vecNumFrameSizeConvBlocks;
+    CVector<int> vecUseDoubleSysFraSizeConvBuf;
+    CVector<EAudComprType> vecAudioComprType;
+    CVector<CVector<int16_t>> vecvecsSendData;
+    CVector<CVector<uint8_t>> vecvecbyCodedData;
 
     // Channel levels
-    CVector<uint16_t>          vecChannelLevels;
+    CVector<uint16_t> vecChannelLevels;
 
     // actual working objects
-    CHighPrioSocket            Socket;
+    CHighPrioSocket Socket;
 
     // logging
-    CServerLogging             Logging;
+    CServerLogging Logging;
 
     // channel level update frame interval counter
-    int                        iFrameCount;
+    int iFrameCount;
 
     // HTML file server status
-    bool                       bWriteStatusHTMLFile;
-    QString                    strServerHTMLFileListName;
-    QString                    strServerNameWithPort;
+    bool bWriteStatusHTMLFile;
+    QString strServerHTMLFileListName;
+    QString strServerNameWithPort;
 
-    CHighPrecisionTimer        HighPrecisionTimer;
+    CHighPrecisionTimer HighPrecisionTimer;
 
     // server list
-    CServerListManager         ServerListManager;
+    CServerListManager ServerListManager;
 
     // jam recorder
-    recorder::CJamController   JamController;
+    recorder::CJamController JamController;
 
     // GUI settings
-    bool                       bAutoRunMinimized;
+    bool bAutoRunMinimized;
 
     // messaging
-    QString                    strWelcomeMessage;
-    ELicenceType               eLicenceType;
-    bool                       bDisconnectAllClientsOnQuit;
+    QString strWelcomeMessage;
+    ELicenceType eLicenceType;
+    bool bDisconnectAllClientsOnQuit;
 
-    CSignalHandler*            pSignalHandler;
+    CSignalHandler *pSignalHandler;
 
 signals:
     void Started();
     void Stopped();
-    void ClientDisconnected ( const int iChID );
+    void ClientDisconnected(const int iChID);
     void SvrRegStatusChanged();
-    void AudioFrame ( const int              iChID,
-                      const QString          stChName,
-                      const CHostAddress     RecHostAddr,
-                      const int              iNumAudChan,
-                      const CVector<int16_t> vecsData );
+    void AudioFrame(const int iChID,
+                    const QString stChName,
+                    const CHostAddress RecHostAddr,
+                    const int iNumAudChan,
+                    const CVector<int16_t> vecsData);
 
     // pass through from jam controller
     void RestartRecorder();
     void StopRecorder();
-    void RecordingSessionStarted ( QString sessionDir );
+    void RecordingSessionStarted(QString sessionDir);
     void EndRecorderThread();
 
 public slots:
     void OnTimer();
 
-    void OnNewConnection ( int          iChID,
-                           CHostAddress RecHostAddr );
+    void OnNewConnection(int iChID,
+                         CHostAddress RecHostAddr);
 
-    void OnServerFull ( CHostAddress RecHostAddr );
+    void OnServerFull(CHostAddress RecHostAddr);
 
-    void OnSendCLProtMessage ( CHostAddress     InetAddr,
-                               CVector<uint8_t> vecMessage );
+    void OnSendCLProtMessage(CHostAddress InetAddr,
+                             CVector<uint8_t> vecMessage);
 
-    void OnProtcolCLMessageReceived ( int              iRecID,
-                                      CVector<uint8_t> vecbyMesBodyData,
-                                      CHostAddress     RecHostAddr );
-
-    void OnProtcolMessageReceived ( int              iRecCounter,
-                                    int              iRecID,
+    void OnProtcolCLMessageReceived(int iRecID,
                                     CVector<uint8_t> vecbyMesBodyData,
-                                    CHostAddress     RecHostAddr );
+                                    CHostAddress RecHostAddr);
 
-    void OnCLPingReceived ( CHostAddress InetAddr, int iMs )
-        { ConnLessProtocol.CreateCLPingMes ( InetAddr, iMs ); }
+    void OnProtcolMessageReceived(int iRecCounter,
+                                  int iRecID,
+                                  CVector<uint8_t> vecbyMesBodyData,
+                                  CHostAddress RecHostAddr);
 
-    void OnCLPingWithNumClientsReceived ( CHostAddress InetAddr,
-                                          int          iMs,
-                                          int )
+    void OnCLPingReceived(CHostAddress InetAddr, int iMs)
     {
-        ConnLessProtocol.CreateCLPingWithNumClientsMes ( InetAddr,
-                                                         iMs,
-                                                         GetNumberOfConnectedClients() );
+        ConnLessProtocol.CreateCLPingMes(InetAddr, iMs);
     }
 
-    void OnCLSendEmptyMes ( CHostAddress TargetInetAddr )
+    void OnCLPingWithNumClientsReceived(CHostAddress InetAddr,
+                                        int iMs,
+                                        int)
+    {
+        ConnLessProtocol.CreateCLPingWithNumClientsMes(InetAddr,
+                                                       iMs,
+                                                       GetNumberOfConnectedClients());
+    }
+
+    void OnCLSendEmptyMes(CHostAddress TargetInetAddr)
     {
         // only send empty message if server list is enabled and this is not
         // the central server
-        if ( ServerListManager.GetEnabled() &&
-             !ServerListManager.GetIsCentralServer() )
+        if (ServerListManager.GetEnabled() &&
+            !ServerListManager.GetIsCentralServer())
         {
-            ConnLessProtocol.CreateCLEmptyMes ( TargetInetAddr );
+            ConnLessProtocol.CreateCLEmptyMes(TargetInetAddr);
         }
     }
 
-    void OnCLReqServerList ( CHostAddress InetAddr )
-        { ServerListManager.CentralServerQueryServerList ( InetAddr ); }
+    void OnCLReqServerList(CHostAddress InetAddr)
+    {
+        ServerListManager.CentralServerQueryServerList(InetAddr);
+    }
 
-    void OnCLReqVersionAndOS ( CHostAddress InetAddr )
-        { ConnLessProtocol.CreateCLVersionAndOSMes ( InetAddr ); }
+    void OnCLReqVersionAndOS(CHostAddress InetAddr)
+    {
+        ConnLessProtocol.CreateCLVersionAndOSMes(InetAddr);
+    }
 
     // the CreateChannelList() function access vecChannels which as to be mutexed
     // since the normal server thread my change that at a random time
-    void OnCLReqConnClientsList ( CHostAddress InetAddr )
-        { QMutexLocker locker ( &Mutex ); ConnLessProtocol.CreateCLConnClientsListMes ( InetAddr, CreateChannelList() ); }
-
-    void OnCLRegisterServerReceived ( CHostAddress    InetAddr,
-                                      CHostAddress    LInetAddr,
-                                      CServerCoreInfo ServerInfo )
+    void OnCLReqConnClientsList(CHostAddress InetAddr)
     {
-        ServerListManager.CentralServerRegisterServer ( InetAddr, LInetAddr, ServerInfo );
+        QMutexLocker locker(&Mutex);
+        ConnLessProtocol.CreateCLConnClientsListMes(InetAddr, CreateChannelList());
     }
 
-    void OnCLRegisterServerExReceived ( CHostAddress           InetAddr,
-                                        CHostAddress           LInetAddr,
-                                        CServerCoreInfo        ServerInfo,
-                                        COSUtil::EOpSystemType eOSType,
-                                        QString                strVersion )
+    void OnCLRegisterServerReceived(CHostAddress InetAddr,
+                                    CHostAddress LInetAddr,
+                                    CServerCoreInfo ServerInfo)
     {
-        ServerListManager.CentralServerRegisterServerEx ( InetAddr, LInetAddr, ServerInfo, eOSType, strVersion );
+        ServerListManager.CentralServerRegisterServer(InetAddr, LInetAddr, ServerInfo);
     }
 
-    void OnCLRegisterServerResp ( CHostAddress  /* unused */,
-                                  ESvrRegResult eResult )
+    void OnCLRegisterServerExReceived(CHostAddress InetAddr,
+                                      CHostAddress LInetAddr,
+                                      CServerCoreInfo ServerInfo,
+                                      COSUtil::EOpSystemType eOSType,
+                                      QString strVersion)
     {
-        ServerListManager.StoreRegistrationResult ( eResult );
+        ServerListManager.CentralServerRegisterServerEx(InetAddr, LInetAddr, ServerInfo, eOSType, strVersion);
     }
 
-    void OnCLUnregisterServerReceived ( CHostAddress InetAddr )
+    void OnCLRegisterServerResp(CHostAddress /* unused */,
+                                ESvrRegResult eResult)
     {
-        ServerListManager.CentralServerUnregisterServer ( InetAddr );
+        ServerListManager.StoreRegistrationResult(eResult);
     }
 
-    void OnCLDisconnection ( CHostAddress InetAddr );
+    void OnCLUnregisterServerReceived(CHostAddress InetAddr)
+    {
+        ServerListManager.CentralServerUnregisterServer(InetAddr);
+    }
+
+    void OnCLDisconnection(CHostAddress InetAddr);
 
     void OnAboutToQuit();
 
-    void OnHandledSignal ( int sigNum );
+    void OnHandledSignal(int sigNum);
 };
 
 Q_DECLARE_METATYPE(CVector<int16_t>)

@@ -436,6 +436,7 @@ signals:
 
 public slots:
 #ifdef AGONES
+    void Deallocate(agones::dev::sdk::GameServer &gameserver);
     void OnHealthTimer();
 #endif
     void OnTimer();

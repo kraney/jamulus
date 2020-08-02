@@ -815,24 +815,84 @@ void CServer::Stop()
         Logging.AddServerStopped();
 
 #ifdef AGONES
-        grpc::Status status = agonesSDK->Ready();
+        agones::dev::sdk::GameServer gameserver;
+        grpc::Status status = agonesSDK->GameServer(&gameserver);
         if (!status.ok())
         {
-            std::cerr << "Unable to mark this server as deallocated" << endl;
+            std::cout << "Unable to retrieve GameServer status\n"
+                      << std::flush;
+            return;
         }
+        Deallocate(gameserver);
 #endif
 
         // emit stopped signal
-        emit Stopped();
+        emit
+        Stopped();
     }
 }
 
 #ifdef AGONES
+void CServer::Deallocate(agones::dev::sdk::GameServer &gameserver)
+{
+    auto &annotations = gameserver.object_meta().annotations();
+    auto it = annotations.find("llcon.sf.net/until");
+    if (it != annotations.end())
+    {
+        // There's an end time for a reservation - see how long it has left
+        const QDateTime curDateTime = QDateTime::currentDateTimeUtc();
+        const QDateTime end = QDateTime::fromString(QString::fromStdString(it->second), Qt::ISODate);
+        qint64 remaining = curDateTime.secsTo(end);
+        std::cout << "Remaining time: " << remaining << std::endl
+                  << std::flush;
+        if (remaining > 0 && remaining < (8 * 60 * 60))
+        {
+            std::chrono::seconds rsv = (std::chrono::seconds)remaining;
+            std::cout << "Returning server to reserved status for " << remaining << " seconds" << endl
+                      << std::flush;
+            // There's time remaining, so convert our status to a reservation for that amount of time
+            agonesSDK->Reserve(rsv);
+            return;
+        }
+        // otherwise, fall through and go back to deallocated / ready
+    }
+    std::cout << "Deallocating server (going back to Ready)" << endl
+              << std::flush;
+    grpc::Status status = agonesSDK->Ready();
+    if (!status.ok())
+    {
+        std::cerr << "Unable to mark this server as deallocated" << endl;
+    }
+}
+
 void CServer::OnHealthTimer()
 {
     bool ok = agonesSDK->Health();
     std::cout << "Health ping " << (ok ? "sent" : "failed") << "\n"
               << std::flush;
+    if (!ok)
+    {
+        // if we couldn't report health, don't bother trying more stuff
+        return;
+    }
+    if (IsRunning())
+    {
+        // if we have clients, we're already allocated so don't need to watch for outside allocations
+        return;
+    }
+    agones::dev::sdk::GameServer gameserver;
+    grpc::Status status = agonesSDK->GameServer(&gameserver);
+    if (!status.ok())
+    {
+        std::cout << "Unable to retrieve GameServer status\n"
+                  << std::flush;
+        return;
+    }
+    if (gameserver.status().state() == "Allocated")
+    {
+        // we're allocated, but with no clients. Let's translate that into a "Reserved" for the indicated time
+        Deallocate(gameserver);
+    }
 }
 #endif
 

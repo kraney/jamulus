@@ -1018,6 +1018,8 @@ contains(CONFIG, "opus_shared_lib") {
 }
 
 contains(CONFIG, "agones") {
+    HEADERS += src/agones.h
+    SOURCES += src/agones.cpp
     DEFINES += AGONES
     INCLUDEPATH += /opt/local/Protobuf/include \
                    /opt/local/agones/include \

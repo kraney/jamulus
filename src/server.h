@@ -31,8 +31,7 @@
 #include <QFileInfo>
 #include <algorithm>
 #ifdef AGONES
-#include <agones/sdk.h>
-#include <grpc++/grpc++.h>
+#include "agones.h"
 #endif
 #ifdef USE_OPUS_SHARED_LIB
 #include "opus/opus_custom.h"
@@ -412,8 +411,7 @@ protected:
     CSignalHandler *pSignalHandler;
 
 #ifdef AGONES
-    agones::SDK *agonesSDK;
-    QTimer *healthTimer;
+    CAgonesHelper Agones;
 #endif
 
 signals:
@@ -435,10 +433,6 @@ signals:
     void EndRecorderThread();
 
 public slots:
-#ifdef AGONES
-    void Deallocate(agones::dev::sdk::GameServer &gameserver);
-    void OnHealthTimer();
-#endif
     void OnTimer();
 
     void OnNewConnection(int iChID,

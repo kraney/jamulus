@@ -5,17 +5,22 @@
 #include <agones/sdk.h>
 #include <grpc++/grpc++.h>
 
+class CServer;
+
 class CAgonesHelper : public QObject
 {
     Q_OBJECT
 public:
-    CAgonesHelper();
+    CAgonesHelper(CServer &server);
     virtual ~CAgonesHelper();
     void Start();
     void Stop();
 
+    static bool toBool(const std::string &strval);
+
 protected:
     agones::SDK agonesSDK;
+    CServer &server;
 
     QThread *watchThread;
     QTimer *healthTimer;

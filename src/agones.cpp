@@ -2,10 +2,11 @@
 #include <QMetaType>
 #include <iostream>
 #include "agones.h"
+#include "server.h"
 
 Q_DECLARE_METATYPE(agones::dev::sdk::GameServer)
 
-CAgonesHelper::CAgonesHelper() : QObject(0)
+CAgonesHelper::CAgonesHelper(CServer &server) : QObject(0), server(server)
 {
     qRegisterMetaType<agones::dev::sdk::GameServer>("agones::dev::sdk::GameServer");
 
@@ -75,6 +76,12 @@ void CAgonesHelper::Stop()
     CheckDeallocate(gameserver);
 }
 
+bool CAgonesHelper::toBool(const std::string &input)
+{
+    QString lower = QString::fromStdString(input).toLower();
+    return (lower == "true");
+}
+
 void CAgonesHelper::CheckDeallocate(const agones::dev::sdk::GameServer &gameserver)
 {
     auto &annotations = gameserver.object_meta().annotations();
@@ -109,6 +116,28 @@ void CAgonesHelper::CheckDeallocate(const agones::dev::sdk::GameServer &gameserv
         reservationTimer->start(curDateTime.msecsTo(end));
         return;
     }
+
+    server.SetWelcomeMessage("");
+    server.SetServerListCentralServerAddress("localhost");
+    {
+        auto it = annotations.find("llcon.sf.net/doShutdown");
+        std::cout << it->second << std::endl;
+        std::cout << this->toBool(it->second) << std::endl;
+        if (it != annotations.end() && toBool(it->second))
+        {
+
+            // allocation said we should shut down, not go back to ready
+            std::cout << "Deallocating server (shutdown)" << std::endl
+                      << std::flush;
+            grpc::Status status = agonesSDK.Shutdown();
+            if (!status.ok())
+            {
+                std::cerr << "Unable to mark this server as deallocated" << std::endl;
+            }
+            return;
+        }
+    }
+
     // otherwise, fall through and go back to deallocated / ready
     std::cout << "Deallocating server (going back to Ready)" << std::endl
               << std::flush;
@@ -125,6 +154,32 @@ void CAgonesHelper::OnUpdate(const agones::dev::sdk::GameServer &gameserver)
               << "\tname: " << gameserver.object_meta().name() << "\n" //
               << "\tstate: " << gameserver.status().state() << "\n"
               << std::flush;
+
+    auto &annotations = gameserver.object_meta().annotations();
+    {
+        auto it = annotations.find("llcon.sf.net/serverName");
+        if (it != annotations.end())
+        {
+            server.SetServerName(QString::fromStdString(it->second));
+        }
+    }
+
+    {
+        auto it = annotations.find("llcon.sf.net/welcomeMessage");
+        if (it != annotations.end())
+        {
+            server.SetWelcomeMessage(QString::fromStdString(it->second));
+        }
+    }
+
+    {
+        auto it = annotations.find("llcon.sf.net/centralServer");
+        if (it != annotations.end())
+        {
+            server.SetServerListCentralServerAddress(QString::fromStdString(it->second));
+        }
+    }
+
     if (gameserver.status().state() == "Allocated")
     {
         // we're allocated, but with no clients. Let's translate that into a "Reserved" for the indicated time

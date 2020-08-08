@@ -246,6 +246,10 @@ CServer::CServer(const int iNewMaxNumChan,
                                                      eLicenceType(eNLicenceType),
                                                      bDisconnectAllClientsOnQuit(bNDisconnectAllClientsOnQuit),
                                                      pSignalHandler(CSignalHandler::getSingletonP())
+#ifdef AGONES
+                                                     ,
+                                                     Agones(*this)
+#endif
 {
     int iOpusError;
     int i;

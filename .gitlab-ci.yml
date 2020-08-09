@@ -22,7 +22,7 @@ variables:
   GCR_REPO:             gcr.io/${PROJECT_ID}
   CACHE_TAG:            gitlab
   TAG:                  gitlab
-  CACHE_IMAGE:          ${GCR_REPO}/jamulus:${CACHE_TAG}
+  CACHE_IMAGE:          gcr.io/${PROJECT_ID}/jamulus:${CACHE_TAG}
 
 services:
   - docker:19.03.12-dind

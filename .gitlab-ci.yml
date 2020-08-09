@@ -23,7 +23,6 @@ variables:
   CACHE_TAG:            gitlab
   TAG:                  gitlab
   CACHE_IMAGE:          ${GCR_REPO}/jamuls:${CACHE_TAG}
-  GOOGLE_CLOUD_ACCOUNT: ${GOOGLE_CLOUD_ACCOUNT}
 
 services:
   - docker:19.03.12-dind

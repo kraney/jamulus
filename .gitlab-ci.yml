@@ -34,7 +34,7 @@ before_script:
 build:
   stage: build
   script:
-    - echo ${GOOGLE_CLOUD_ACCOUNT} | docker login -u _json_key --password-stdin https://gcr.iu
+    - echo ${GOOGLE_CLOUD_ACCOUNT} | docker login -u _json_key --password-stdin https://gcr.io
     - docker pull ${CACHE_IMAGE} || true
     - docker build --cache-from ${CACHE_IMAGE} -t ${GCR_REPO}/jamulus:$TAG .
     #- docker run my-docker-image /script/to/run/tests

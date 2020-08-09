@@ -18,11 +18,12 @@ variables:
   # This will instruct Docker not to start over TLS.
   DOCKER_TLS_CERTDIR: ""
   # GCP project ID for image repo
-  PROJECT_ID:   rehearsal-284416
-  GCR_REPO:     gcr.io/${PROJECT_ID}
-  CACHE_TAG:    gitlab
-  TAG:          gitlab
-  CACHE_IMAGE:  ${GCR_REPO}/jamuls:${CACHE_TAG}
+  PROJECT_ID:           rehearsal-284416
+  GCR_REPO:             gcr.io/${PROJECT_ID}
+  CACHE_TAG:            gitlab
+  TAG:                  gitlab
+  CACHE_IMAGE:          ${GCR_REPO}/jamuls:${CACHE_TAG}
+  GOOGLE_CLOUD_ACCOUNT: ${GOOGLE_CLOUD_ACCOUNT}
 
 services:
   - docker:19.03.12-dind

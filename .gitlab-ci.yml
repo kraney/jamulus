@@ -23,6 +23,7 @@ variables:
   CACHE_TAG:            gitlab
   TAG:                  gitlab
   CACHE_IMAGE:          gcr.io/${PROJECT_ID}/jamulus:${CACHE_TAG}
+  DOCKER_BUILDKIT:      1
 
 services:
   - docker:19.03.12-dind
@@ -35,7 +36,6 @@ build:
   script:
     - echo ${GOOGLE_CLOUD_ACCOUNT} | docker login -u _json_key --password-stdin https://gcr.io
     - echo Using ${CACHE_IMAGE} for cache
-    - docker pull ${CACHE_IMAGE} || true
-    - DOCKER_BUILDKIT=1 docker build --cache-from ${CACHE_IMAGE} --build-arg BUILDKIT_INLINE_CACHE=1 -t ${GCR_REPO}/jamulus:$TAG .
+    - docker build --cache-from ${CACHE_IMAGE} --build-arg BUILDKIT_INLINE_CACHE=1 -t ${GCR_REPO}/jamulus:$TAG .
     #- docker run my-docker-image /script/to/run/tests
     - docker push ${GCR_REPO}/jamulus:$TAG

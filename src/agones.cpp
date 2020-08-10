@@ -92,7 +92,14 @@ void CAgonesHelper::CheckDeallocate(const agones::dev::sdk::GameServer &gameserv
     {
         // No end time was specified - let's set one
         end = curDateTime.addSecs(10 * 60);
-        agonesSDK.SetAnnotation("llcon.sf.net/until", end.toString(Qt::ISODate).toStdString());
+        auto status = agonesSDK.SetAnnotation("llcon.sf.net/until", end.toString(Qt::ISODate).toStdString());
+        if (!status.ok())
+        {
+            std::cout << "Unable to set end time annotation" << status.error_message() << endl
+                      << std::flush;
+            // if we don't use "now", we'll indefinitely delay the end time
+            end = curDateTime;
+        }
     }
     else
     {

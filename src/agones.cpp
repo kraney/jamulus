@@ -90,15 +90,10 @@ void CAgonesHelper::CheckDeallocate(const agones::dev::sdk::GameServer &gameserv
     QDateTime end;
     if (it == annotations.end())
     {
-        // No end time was specified - let's set one
-        end = curDateTime.addSecs(10 * 60);
-        auto status = agonesSDK.SetAnnotation("llcon.sf.net/until", end.toString(Qt::ISODate).toStdString());
-        if (!status.ok())
+        // No end time was set. If we have a user, leave them be
+        if (server.IsRunning())
         {
-            std::cout << "Unable to set end time annotation" << status.error_message() << endl
-                      << std::flush;
-            // if we don't use "now", we'll indefinitely delay the end time
-            end = curDateTime;
+            return;
         }
     }
     else
@@ -189,7 +184,6 @@ void CAgonesHelper::OnUpdate(const agones::dev::sdk::GameServer &gameserver)
 
     if (gameserver.status().state() == "Allocated")
     {
-        // we're allocated, but with no clients. Let's translate that into a "Reserved" for the indicated time
         emit CheckDeallocate(gameserver);
     }
 }

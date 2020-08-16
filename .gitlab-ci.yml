@@ -20,9 +20,8 @@ variables:
   # GCP project ID for image repo
   PROJECT_ID:           rehearsal-284416
   GCR_REPO:             gcr.io/${PROJECT_ID}
-  CACHE_TAG:            gitlab
-  TAG:                  gitlab
-  CACHE_IMAGE:          gcr.io/${PROJECT_ID}/jamulus:${CACHE_TAG}
+  AGONES_TAG:           gitlab-agones
+  NONAGONES_TAG:        gitlab-nonagones
   DOCKER_BUILDKIT:      1
 
 services:
@@ -31,11 +30,20 @@ services:
 before_script:
   - docker info
 
-build:
+agones:
   stage: build
   script:
     - echo ${GOOGLE_CLOUD_ACCOUNT} | docker login -u _json_key --password-stdin https://gcr.io
-    - echo Using ${CACHE_IMAGE} for cache
-    - docker build --cache-from ${CACHE_IMAGE} --build-arg BUILDKIT_INLINE_CACHE=1 -t ${GCR_REPO}/jamulus:$TAG .
+    - echo Using gcr.io/${PROJECT_ID}/jamulus:${AGONES_TAG} for cache
+    - docker build --cache-from gcr.io/${PROJECT_ID}/jamulus:${AGONES_TAG} --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg AGONES=1 -t ${GCR_REPO}/jamulus:$AGONES_TAG .
+    - docker push ${GCR_REPO}/jamulus:$AGONES_TAG
     #- docker run my-docker-image /script/to/run/tests
-    - docker push ${GCR_REPO}/jamulus:$TAG
+
+non-agones:
+  stage: build
+  script:
+    - echo ${GOOGLE_CLOUD_ACCOUNT} | docker login -u _json_key --password-stdin https://gcr.io
+    - echo Using gcr.io/${PROJECT_ID}/jamulus:${NONAGONES_TAG} for cache
+    - docker build --cache-from gcr.io/${PROJECT_ID}/jamulus:${NONAGONES_TAG} --build-arg BUILDKIT_INLINE_CACHE=1 -t ${GCR_REPO}/jamulus:$NONAGONES_TAG .
+    - docker push ${GCR_REPO}/jamulus:$NONAGONES_TAG
+    #- docker run my-docker-image /script/to/run/tests

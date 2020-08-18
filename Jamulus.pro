@@ -8,13 +8,11 @@ contains(CONFIG, "noupcasename") {
 
 # support multi-threading with OMP if requested
 contains(CONFIG, "multithreading") {
-    unix {
         message(The OpenMP multithreading is enabled.)
         message(NOTE THAT THE OpenMP IMPLEMENTATION IS STILL EXPERIMENTAL AND MAY NOT BE STABLE.)
         DEFINES += USE_OMP
         QMAKE_CXXFLAGS += -fopenmp
         QMAKE_LFLAGS += -fopenmp
-    }
 }
 
 CONFIG += qt \
@@ -283,7 +281,7 @@ win32 {
         HEADERS += $$OBOE_HEADERS
         SOURCES += $$OBOE_SOURCES
         DISTFILES += $$DISTFILES_OBOE
-} else:unix {
+} else {
     # we want to compile with C++11
     CONFIG += c++11
 

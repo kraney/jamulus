@@ -1,5 +1,6 @@
 FROM alpine:3.12 AS build
 ARG AGONES
+ARG MULTITHREADING
 
 RUN apk add --update alpine-sdk cmake \
                      qt5-qtbase qt5-qttools-dev
@@ -11,16 +12,20 @@ WORKDIR /agones-1.7.0/sdks/cpp
 RUN test -z "$AGONES" || make
 RUN test -z "$AGONES" || make install
 
+# install multithreading lib if needed
+RUN test -z "$MULTITHREADING" || apk add --update libgomp
+
 COPY . /src/
 WORKDIR /src
 
-RUN qmake-qt5 CONFIG="${agones:+agones} headless nosound noupcasename" DEFINES="HAVE_STDINT_H"
+RUN qmake-qt5 CONFIG="${AGONES:+agones} ${MULTITHREADING:+multithreading} headless nosound noupcasename" DEFINES="HAVE_STDINT_H"
 RUN make
 
 FROM alpine:3.12
 
 RUN apk add --update qt5-qtbase \
                      util-linux \
+                     libgomp \
  && rm -rf /var/cache/apk/*
 
 COPY --from=build /src/jamulus /usr/bin/

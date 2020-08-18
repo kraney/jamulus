@@ -143,6 +143,9 @@ CConnectDlg::CConnectDlg ( CClient*        pNCliP,
         lvwServers->sortItems ( 0, Qt::AscendingOrder );
     }
 
+    // set a placeholder text to explain how to filter occupied servers (#397)
+    edtFilter->setPlaceholderText ( tr ( "Type # for occupied servers" ) );
+
 #ifdef ANDROID
     // for the android version maximize the window
     setWindowState ( Qt::WindowMaximized );
@@ -572,7 +575,8 @@ void CConnectDlg::UpdateListFilter()
             // special case: filter for occupied servers
             // DEFINITION: if "#" is set at the beginning of the filter text, we show
             //             occupied servers (#397)
-            if ( ( sFilterText.indexOf ( "#" ) == 0 ) && ( pCurListViewItem->childCount() > 0 ) )
+            if ( ( sFilterText.indexOf ( "#" ) == 0 ) && ( sFilterText.length() == 1 ) &&
+                 ( pCurListViewItem->childCount() > 0 ) )
             {
                 bFilterFound = true;
             }
@@ -658,7 +662,7 @@ void CConnectDlg::OnConnectClicked()
     }
     else
     {
-        strSelectedAddress = cbxServerAddr->currentText();
+        strSelectedAddress = NetworkUtil::FixAddress ( cbxServerAddr->currentText() );
     }
 
     // tell the parent window that the connection shall be initiated
@@ -756,8 +760,10 @@ void CConnectDlg::SetPingTimeAndNumClientsResult ( const CHostAddress& InetAddr,
         }
         else
         {
+            // prepend spaces so that we can sort correctly (fieldWidth of
+            // 4 is sufficient since the maximum width is ">500") (#201)
             pCurListViewItem->
-                setText ( 1, QString().setNum ( iMinPingTime ) + " ms" );
+                setText ( 1, QString ( "%1 ms" ).arg ( iMinPingTime, 4, 10, QLatin1Char ( ' ' ) ) );
         }
 
         // update number of clients text
@@ -786,16 +792,19 @@ void CConnectDlg::SetPingTimeAndNumClientsResult ( const CHostAddress& InetAddr,
         }
 
         // Update sorting. Note that the sorting must be the last action for the
-        // current item since the topLevelItem ( iIdx ) is then no longer valid.
-        if ( bDoSorting && !bShowCompleteRegList ) // do not sort if "show all servers"
+        // current item since the topLevelItem(iIdx) is then no longer valid.
+        // To avoid that the list is sorted shortly before a double click (which
+        // could lead to connecting an incorrect server) the sorting is disabled
+        // as long as the mouse is over the list (#293).
+        if ( bDoSorting && !bShowCompleteRegList && !lvwServers->underMouse() ) // do not sort if "show all servers"
         {
             lvwServers->sortByColumn ( 4, Qt::AscendingOrder );
         }
     }
 
     // if no server item has children, do not show decoration
-    bool bAnyListItemHasChilds = false;
-    const int iServerListLen   = lvwServers->topLevelItemCount();
+    bool      bAnyListItemHasChilds = false;
+    const int iServerListLen        = lvwServers->topLevelItemCount();
 
     for ( int iIdx = 0; iIdx < iServerListLen; iIdx++ )
     {

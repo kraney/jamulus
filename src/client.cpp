@@ -182,7 +182,7 @@ CClient::CClient ( const quint16  iPortNumber,
         this, &CClient::OnSndCrdReinitRequest );
 
     QObject::connect ( &Sound, &CSound::ControllerInFaderLevel,
-        this, &CClient::ControllerInFaderLevel );
+        this, &CClient::OnControllerInFaderLevel );
 
     QObject::connect ( &Socket, &CHighPrioSocket::InvalidPacketReceived,
         this, &CClient::OnInvalidPacketReceived );
@@ -684,6 +684,22 @@ void CClient::OnHandledSignal ( int sigNum )
 #endif
 }
 
+void CClient::OnControllerInFaderLevel ( int iChannelIdx,
+                                         int iValue )
+{
+    // in case of a headless client the faders cannot be moved so we need
+    // to send the controller information directly to the server
+#ifdef HEADLESS
+    // only apply new fader level if channel index is valid
+    if ( ( iChannelIdx >= 0 ) && ( iChannelIdx < MAX_NUM_CHANNELS ) )
+    {
+        SetRemoteChanGain ( iChannelIdx, MathUtils::CalcFaderGain ( iValue ), false );
+    }
+#endif
+
+    emit ControllerInFaderLevel ( iChannelIdx, iValue );
+}
+
 void CClient::Start()
 {
     // init object
@@ -971,10 +987,12 @@ void CClient::ProcessAudioDataIntern ( CVector<int16_t>& vecsStereoSndCrd )
 
 
     // Transmit signal ---------------------------------------------------------
-    // update stereo signal level meter
+    // update stereo signal level meter (not needed in headless mode)
+#ifndef HEADLESS
     SignalLevelMeter.Update ( vecsStereoSndCrd,
                               iMonoBlockSizeSam,
                               true );
+#endif
 
     // add reverberation effect if activated
     if ( iReverbLevel != 0 )

@@ -28,7 +28,8 @@
 /******************************************************************************\
 * CChanneFader                                                                 *
 \******************************************************************************/
-CChannelFader::CChannelFader ( QWidget* pNW )
+CChannelFader::CChannelFader ( QWidget* pNW ) :
+    eDesign ( GD_STANDARD )
 {
     // create new GUI control objects and store pointers to them (note that
     // QWidget takes the ownership of the pMainGrid so that this only has
@@ -91,7 +92,6 @@ CChannelFader::CChannelFader ( QWidget* pNW )
     // setup fader tag label (black bold text which is centered)
     plblLabel->setTextFormat ( Qt::PlainText );
     plblLabel->setAlignment  ( Qt::AlignHCenter | Qt::AlignVCenter );
-    plblLabel->setStyleSheet ( "QLabel { color: black; font: bold; }" );
 
     // set margins of the layouts to zero to get maximum space for the controls
     pMainGrid->setContentsMargins ( 0, 0, 0, 0 );
@@ -203,6 +203,8 @@ CChannelFader::CChannelFader ( QWidget* pNW )
 
 void CChannelFader::SetGUIDesign ( const EGUIDesign eNewDesign )
 {
+    eDesign = eNewDesign;
+
     switch ( eNewDesign )
     {
     case GD_ORIGINAL:
@@ -233,7 +235,7 @@ void CChannelFader::SetGUIDesign ( const EGUIDesign eNewDesign )
 
     case GD_SLIMFADER:
         pLabelPictGrid->addWidget           ( plblLabel,  0, Qt::AlignHCenter ); // label below icons
-        pLabelInstBox->setMinimumHeight     ( 94 ); // maximum height of the instrument+flag+label
+        pLabelInstBox->setMinimumHeight     ( 130 ); // maximum height of the instrument+flag+label
         pFader->setMinimumHeight            ( 85 );
         pPan->setFixedSize                  ( 28, 28 );
         pFader->setTickPosition             ( QSlider::NoTicks );
@@ -468,7 +470,7 @@ void CChannelFader::SendFaderLevelToServer ( const double dLevel,
                                           ( !bOtherChannelIsSolo || IsSolo() ) );
 
     // emit signal for new fader gain value
-    emit gainValueChanged ( CalcFaderGain ( dLevel ),
+    emit gainValueChanged ( MathUtils::CalcFaderGain ( dLevel ),
                             bIsMyOwnFader,
                             bIsGroupUpdate,
                             bSuppressServerUpdate,
@@ -567,7 +569,7 @@ void CChannelFader::SetMute ( const bool bState )
         if ( !bOtherChannelIsSolo || IsSolo() )
         {
             // mute was unchecked, get current fader value and apply
-            emit gainValueChanged ( CalcFaderGain ( GetFaderLevel() ), bIsMyOwnFader, false, false, -1 ); // set level ratio to in invalid value
+            emit gainValueChanged ( MathUtils::CalcFaderGain ( GetFaderLevel() ), bIsMyOwnFader, false, false, -1 ); // set level ratio to in invalid value
         }
     }
 }
@@ -601,14 +603,33 @@ void CChannelFader::SetChannelInfos ( const CChannelInfo& cChanInfo )
 
 
     // Label text --------------------------------------------------------------
-    // break text at predefined position
-    const int iBreakPos = MAX_LEN_FADER_TAG / 2;
 
     QString strModText = cChanInfo.strName;
 
-    if ( strModText.length() > iBreakPos )
+    // apply break position and font size depending on the selected design
+    if ( eDesign == GD_SLIMFADER )
     {
-        strModText.insert ( iBreakPos, QString ( "\n" ) );
+        // in slim mode use a non-bold font (smaller width font)
+        plblLabel->setStyleSheet ( "QLabel { color: black; }" );
+
+        // break at every 4th character
+        for ( int iInsPos = 4; iInsPos <= strModText.size() - 1; iInsPos += 4 + 1 )
+        {
+            strModText.insert ( iInsPos, "\n" );
+        }
+    }
+    else
+    {
+        // in normal mode use bold font
+        plblLabel->setStyleSheet ( "QLabel { color: black; font: bold; }" );
+
+        // break text at predefined position
+        const int iBreakPos = MAX_LEN_FADER_TAG / 2;
+
+        if ( strModText.length() > iBreakPos )
+        {
+            strModText.insert ( iBreakPos, QString ( "\n" ) );
+        }
     }
 
     plblLabel->setText ( strModText );
@@ -748,23 +769,6 @@ void CChannelFader::SetChannelInfos ( const CChannelInfo& cChanInfo )
     plblCountryFlag->setToolTip ( strToolTip );
     plblInstrument->setToolTip  ( strToolTip );
     plblLabel->setToolTip       ( strToolTip );
-}
-
-double CChannelFader::CalcFaderGain ( const double dValue )
-{
-    // convert actual slider range in gain values
-    // and normalize so that maximum gain is 1
-    const double dInValueRange0_1 = dValue / AUD_MIX_FADER_MAX;
-
-    // map range from 0..1 to range -35..0 dB and calculate linear gain
-    if ( dValue == 0 )
-    {
-        return 0; // -infinity
-    }
-    else
-    {
-        return pow ( 10, ( dInValueRange0_1 * 35 - 35 ) / 20 );
-    }
 }
 
 
@@ -1014,6 +1018,7 @@ void CAudioMixerBoard::UpdateTitle()
     }
 
     setTitle ( strTitlePrefix + tr ( "Personal Mix at: " ) + strServerName );
+    setAccessibleName ( title() );
 }
 
 void CAudioMixerBoard::SetRecorderState ( const ERecorderState newRecorderState )

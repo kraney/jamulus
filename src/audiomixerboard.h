@@ -84,7 +84,6 @@ public:
 
 protected:
     void   UpdateGroupIDDependencies();
-    double CalcFaderGain ( const double dValue );
     void   SetMute ( const bool bState );
     void   SetupFaderTag ( const ESkillLevel eSkillLevel );
     void   SendPanValueToServer ( const int iPan );
@@ -121,6 +120,7 @@ protected:
     int          iGroupID;
     QString      strGroupBaseText;
     int          iInstrPicMaxWidth;
+    EGUIDesign   eDesign;
 
 public slots:
     void OnLevelValueChanged ( int value ) { SendFaderLevelToServer ( value, false ); }

@@ -463,6 +463,7 @@ CAboutDlg::CAboutDlg ( QWidget* parent ) : QDialog ( parent )
         "<p>Nils Brederlow (<a href=""https://github.com/dingodoppelt"">dingodoppelt</a>)</p>"
         "<p>Sebastian Krzyszkowiak (<a href=""https://github.com/dos1"">dos1</a>)</p>"
         "<p>dszgit (<a href=""https://github.com/dszgit"">dszgit</a>)</p>"
+        "<p>chigkim (<a href=""https://github.com/chigkim"">chigkim</a>)</p>"
         "<p>Bodo (<a href=""https://github.com/bomm"">bomm</a>)</p>"
         "<p>jp8 (<a href=""https://github.com/jp8"">jp8</a>)</p>"
         "<p>bspeer (<a href=""https://github.com/bspeer"">bspeer</a>)</p>"
@@ -1059,6 +1060,12 @@ QString NetworkUtil::GetCentralServerAddress ( const ECSAddType eCentralServerAd
     case AT_GENRE_CLASSICAL_FOLK: return CENTSERV_GENRE_CLASSICAL_FOLK;
     default:                      return DEFAULT_SERVER_ADDRESS; // AT_DEFAULT
     }
+}
+
+QString NetworkUtil::FixAddress ( const QString& strAddress )
+{
+    // remove all spaces from the address string
+    return strAddress.simplified().replace ( " ", "" );
 }
 
 

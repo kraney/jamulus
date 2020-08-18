@@ -1,4 +1,4 @@
-VERSION = 3.5.9
+VERSION = 3.5.10
 
 # use target name which does not use a captital letter at the beginning
 contains(CONFIG, "noupcasename") {
@@ -8,11 +8,10 @@ contains(CONFIG, "noupcasename") {
 
 # support multi-threading with OMP if requested
 contains(CONFIG, "multithreading") {
-        message(The OpenMP multithreading is enabled.)
-        message(NOTE THAT THE OpenMP IMPLEMENTATION IS STILL EXPERIMENTAL AND MAY NOT BE STABLE.)
-        DEFINES += USE_OMP
-        QMAKE_CXXFLAGS += -fopenmp
-        QMAKE_LFLAGS += -fopenmp
+    message(Multithreading in the server is enabled.)
+    message(NOTE THAT THE MULTITHREADING IMPLEMENTATION IS STILL EXPERIMENTAL AND MAY NOT BE STABLE.)
+    DEFINES += USE_MULTITHREADING
+    QT += concurrent
 }
 
 CONFIG += qt \
@@ -365,7 +364,6 @@ HEADERS += src/buffer.h \
     src/recorder/jamrecorder.h \
     src/recorder/creaperproject.h \
     src/recorder/cwavestream.h \
-    src/historygraph.h \
     src/signalhandler.h
 
 HEADERS_GUI = src/audiomixerboard.h \
@@ -464,8 +462,7 @@ SOURCES += src/buffer.cpp \
     src/util.cpp \
     src/recorder/jamrecorder.cpp \
     src/recorder/creaperproject.cpp \
-    src/recorder/cwavestream.cpp \
-    src/historygraph.cpp
+    src/recorder/cwavestream.cpp
 
 SOURCES_GUI = src/audiomixerboard.cpp \
     src/chatdlg.cpp \
@@ -731,6 +728,8 @@ DISTFILES += ChangeLog \
     src/res/instruments/vocaltenor.png \
     src/res/instruments/vocalalto.png \
     src/res/instruments/vocalsoprano.png \
+    src/res/instruments/vocalbaritone.png \
+    src/res/instruments/vocallead.png \
     src/res/instruments/banjo.png \
     src/res/instruments/mandolin.png \
     src/res/flags/flagnone.png \

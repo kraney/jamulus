@@ -32,6 +32,7 @@ CClientDlg::CClientDlg ( CClient*         pNCliP,
                          const int        iCtrlMIDIChannel,
                          const bool       bNewShowComplRegConnList,
                          const bool       bShowAnalyzerConsole,
+                         const bool       bMuteStream,
                          QWidget*         parent,
                          Qt::WindowFlags  f ) :
     QDialog             ( parent, f ),
@@ -90,11 +91,6 @@ CClientDlg::CClientDlg ( CClient*         pNCliP,
 
     butConnect->setAccessibleName (
         tr ( "Connect and disconnect toggle button" ) );
-
-    butConnect->setAccessibleDescription ( tr ( "Clicking on this "
-        "button changes the caption of the button from Connect to "
-        "Disconnect, i.e., it implements a toggle functionality for connecting "
-        "and disconnecting the application." ) );
 
     // local audio input fader
     QString strAudFader = "<b>" + tr ( "Local Audio Input Fader" ) + ":</b> " +
@@ -225,6 +221,10 @@ CClientDlg::CClientDlg ( CClient*         pNCliP,
     // set window title (with no clients connected -> "0")
     SetMyWindowTitle ( 0 );
 
+    // prepare Mute Myself info label (invisible by default)
+    lblGlobalInfoLabel->setStyleSheet ( ".QLabel { background: red; }" );
+    lblGlobalInfoLabel->hide();
+
 
     // Connect on startup ------------------------------------------------------
     if ( !strConnOnStartupAddress.isEmpty() )
@@ -233,17 +233,6 @@ CClientDlg::CClientDlg ( CClient*         pNCliP,
         // (no alias))
         Connect ( strConnOnStartupAddress, strConnOnStartupAddress );
     }
-
-
-    // Mac Workaround:
-    // If the connect button is the default button, on Mac it is highlighted
-    // by fading in and out a blue background color. This operation consumes so
-    // much CPU that we get audio interruptions.
-    // Better solution: increase thread priority of worker thread (since the
-    // user can always highlight the button manually, too) -> TODO
-#if defined ( __APPLE__ ) || defined ( __MACOSX )
-    butConnect->setDefault ( false );
-#endif
 
 
     // File menu  --------------------------------------------------------------
@@ -505,6 +494,12 @@ CClientDlg::CClientDlg ( CClient*         pNCliP,
     if ( pSettings->bWindowWasShownConnect )
     {
         ShowConnectionSetupDialog();
+    }
+
+    // mute stream on startup (must be done after the signal connections)
+    if ( bMuteStream )
+    {
+        chbLocalMute->setCheckState ( Qt::Checked );
     }
 }
 
@@ -927,6 +922,16 @@ void CClientDlg::OnChatStateChanged ( int value )
 void CClientDlg::OnLocalMuteStateChanged ( int value )
 {
     pClient->SetMuteOutStream ( value == Qt::Checked );
+
+    // show/hide info label
+    if ( value == Qt::Checked )
+    {
+        lblGlobalInfoLabel->show();
+    }
+    else
+    {
+        lblGlobalInfoLabel->hide();
+    }
 }
 
 void CClientDlg::OnTimerSigMet()

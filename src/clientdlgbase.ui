@@ -320,21 +320,21 @@
         <item>
          <widget class="QCheckBox" name="chbLocalMute">
           <property name="text">
-           <string>Mute Myself</string>
+           <string>&amp;Mute Myself</string>
           </property>
          </widget>
         </item>
         <item>
          <widget class="QCheckBox" name="chbSettings">
           <property name="text">
-           <string>Settings</string>
+           <string>&amp;Settings</string>
           </property>
          </widget>
         </item>
         <item>
          <widget class="QCheckBox" name="chbChat">
           <property name="text">
-           <string>Chat</string>
+           <string>C&amp;hat</string>
           </property>
          </widget>
         </item>
@@ -343,8 +343,11 @@
           <property name="text">
            <string>C&amp;onnect</string>
           </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
           <property name="default">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -541,14 +544,31 @@
        </layout>
       </item>
       <item>
-       <widget class="CAudioMixerBoard" name="MainMixerBoard" native="true">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-       </widget>
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <widget class="QLabel" name="lblGlobalInfoLabel">
+          <property name="text">
+           <string>MUTED (Other people won't hear you)</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+          <property name="margin">
+           <number>6</number>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="CAudioMixerBoard" name="MainMixerBoard" native="true">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
      </layout>
     </widget>

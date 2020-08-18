@@ -37,6 +37,9 @@
 #include <QtConcurrent>
 #include <QFutureSynchronizer>
 #endif
+#ifndef _WIN32
+#include <sched.h>
+#endif
 #ifdef USE_OPUS_SHARED_LIB
 #include "opus/opus_custom.h"
 #else
@@ -323,8 +326,13 @@ protected:
 
     void WriteHTMLChannelList();
 
+#ifdef USE_MULTITHREADING
+    void MixEncodeTransmitDataBlocks(const int iStartChanCnt,
+                                     const int iStopChanCnt,
+                                     const int iNumClients);
+#endif
+
     void MixEncodeTransmitData(const int iChanCnt,
-                               const int iCurChanID,
                                const int iNumClients);
 
     virtual void customEvent(QEvent *pEvent);

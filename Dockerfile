@@ -12,9 +12,6 @@ WORKDIR /agones-1.7.0/sdks/cpp
 RUN test -z "$AGONES" || make
 RUN test -z "$AGONES" || make install
 
-# install multithreading lib if needed
-RUN test -z "$MULTITHREADING" || apk add --update libgomp
-
 COPY . /src/
 WORKDIR /src
 
@@ -25,7 +22,6 @@ FROM alpine:3.12
 
 RUN apk add --update qt5-qtbase \
                      util-linux \
-                     libgomp \
  && rm -rf /var/cache/apk/*
 
 COPY --from=build /src/jamulus /usr/bin/
